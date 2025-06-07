@@ -308,7 +308,7 @@ function apt_download_packs () {
       dpkg-scanpackages -m . > Packages
       cd $WORKING_DIR
       curl https://ssl-config.mozilla.org/ffdhe2048.txt > $WORKING_DIR/nginx/dhparam
-      tar -cvf $WORKING_DIR/nginx_offline_install.tar.gz -C $WORKING_DIR/nginx/packages $WORKING_DIR/install_nginx.sh
+      tar -cvf $WORKING_DIR/nginx_offline_install-Ubuntu-$ubuntu_release.tar.gz -C $WORKING_DIR/nginx/packages $WORKING_DIR/install_nginx.sh
 }
 
 function offline_prep () {
