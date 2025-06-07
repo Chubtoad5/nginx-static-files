@@ -5,6 +5,7 @@
 WORKING_DIR=$(pwd)
 mgmt_ip=$(hostname -I | awk '{print $1}')
 current_hostname=$(hostname)
+ubuntu_release=$(lsb_release -r | awk '{print $2}')
 
 # USER DEFINED VARIABLES
 DURATION_DAYS=3650
@@ -18,8 +19,10 @@ HTPASS=NativeEdge123!
 NGINX_PORT=443
 HEAD_TITLE="Artifact Server"
 BODY_TITLE="Artifact Server"
-UPDATE=false
+UPDATE_SERVER=false
+DELETE_SERVER=false
 DEBUG=true
+OFFLINE_PREP=false
 
 ### Functions
 
@@ -35,7 +38,7 @@ function debug_run() {
     echo "--- DEBUG: Finished '$*' with status $status ---"
     return $status # Return the original command's exit status
   else
-    echo "Suppressing install output..."
+    echo "Suppressing debug output for '$*'..."
     # If DEBUG is false, execute the command/function and redirect
     # all standard output (1) and standard error (2) to /dev/null.
     # This effectively suppresses all output.
@@ -70,7 +73,11 @@ function install_prerequisites () {
         echo "htpasswd is already installed!"
     fi
     sudo rm /etc/nginx/sites-enabled/default
-    curl https://ssl-config.mozilla.org/ffdhe2048.txt > $WORKING_DIR/nginx/dhparam
+    if [ -f $WORKING_DIR/nginx/dhparam ]; then
+        echo "dhparam already exists"
+    else
+        curl https://ssl-config.mozilla.org/ffdhe2048.txt > $WORKING_DIR/nginx/dhparam
+    fi
     echo "Done with prerequisite packages..."
 }
 
@@ -277,9 +284,50 @@ function cleanup_install () {
     sudo rm -rf $WORKING_DIR/nginx
 }
 
+function apt_download_packs () {
+    if [[ $OFFLINE_PREP == "true" && ! -f $WORKING_DIR/nginx/packages/Packages ]]; then
+      local PACKAGES="nginx apache2-utils"
+      echo "Downloading offline packages for future use..."
+      mkdir -p $WORKING_DIR/nginx/packages
+      cd $WORKING_DIR/nginx/packages
+      sudo apt-get download $(apt-cache depends --recurse --no-recommends --no-suggests --no-conflicts --no-breaks --no-replaces --no-enhances --no-pre-depends ${PACKAGES} | grep "^\w")
+      dpkg-scanpackages -m . > Packages
+      cd $WORKING_DIR
+      curl https://ssl-config.mozilla.org/ffdhe2048.txt > $WORKING_DIR/nginx/dhparam
+      tar -cvf $WORKING_DIR/nginx_offline_install.tar.gz -C $WORKING_DIR/nginx/packages install_nginx.sh
+      echo "Offline packages prepared.."
+      echo "Run ./install_nginx.sh again to install with local repository, or copy nginx_offline_install.tar.gz to the target server"
+      exit
+    fi
+}
 
+function create_local_repo () {
+    if [[ $OFFLINE_PREP == "true" && -f $WORKING_DIR/nginx/packages/Packages ]]; then
+      echo "Offline install detected, creating local repo from packages"
+      if [[ $ubuntu_release == "22.04" ]]; then
+        sudo mv /etc/apt/sources.list /etc/apt/sources.list.backup
+      elif [[ $ubuntu_release == "24.04" ]]; then
+        sudo mv /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list.d/ubuntu.list.backup
+      fi
+      echo "deb [trusted=yes] file:$WORKING_DIR/nginx/packages ./" | sudo tee -a /etc/apt/sources.list.d/nginx.list
+    fi
+}
+
+function restore_apt_repos () {
+    if [[ $OFFLINE_PREP == "true" ]]; then
+      if [[ $ubuntu_release == "22.04" ]]; then
+        sudo mv /etc/apt/sources.list.backup /etc/apt/sources.list
+      elif [[ $ubuntu_release == "24.04" ]]; then
+        sudo mv /etc/apt/sources.list.d/ubuntu.list.backup /etc/apt/sources.list.d/ubuntu.sources
+    fi
+}
+      
+
+# Script Execution
 if [[ $UPDATE == "false" ]]; then
-    echo "Installing NGINX Artifact server with DEBUG=$DEBUG"
+    echo "Installing NGINX Artifact server with DEBUG=$DEBUG and OFFLINE_PREP=$OFFLINE_PREP"
+    apt_download_packs
+    create_local_repo
     prepare_dirs
     debug_run install_prerequisites
     nginx_cert_gen
@@ -287,13 +335,14 @@ if [[ $UPDATE == "false" ]]; then
     conf_gen
     apply_server
     gen_curl_params
+    restore_apt_repos
     cleanup_install
     echo "NGINX Artifact server install workflow completed."
     echo "CURL config string is $curl_config"
     echo "CURL header is $curl_header"
     echo "Artifact server is available at https://$mgmt_ip:$NGINX_PORT"
-elif [[ $UPDATE == "true" ]]; then
+elif [[ $UPDATE_SERVER == "true" ]]; then
     update_env
-else
+elif [[ $DELETE_SERVER == "true" ]]; then
     delete_env
 fi

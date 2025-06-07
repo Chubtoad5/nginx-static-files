@@ -13,3 +13,28 @@
 - Edit the install_nginx.sh, change the variables from USER DEFINED VARIABLES section match your needs
 - Run the script (may prompt user to authenticate sudo user) "$ ./install_nginx.sh"
 - Script output will provide web server details including URL and authentication strings
+
+## VARIABLES
+
+### SSL Certificate info
+DURATION_DAYS=3650
+ARTIFACT_COMMON_NAME=artifacts.local.edge
+COUNTRY=US
+STATE=MA
+LOCATION=LAB
+ORGANIZATION=SELF
+
+### Basic Authentication info
+HTUSER=edgeuser
+HTPASS=NativeEdge123!
+
+### Webserver info
+NGINX_PORT=443
+HEAD_TITLE="Artifact Server"
+BODY_TITLE="Artifact Server"
+
+### Script Execution info
+UPDATE_SERVER=false
+DELETE_SERVER=false
+DEBUG=true
+OFFLINE_PREP=false
