@@ -295,7 +295,7 @@ function apt_download_packs () {
     if [[ $OFFLINE_PREP == "true" && ! -f $WORKING_DIR/nginx/packages/Packages ]]; then
       local PACKAGES="nginx apache2-utils"
       sudo apt update
-      DEBIAN_FRONTEND=noninteractive sudo apt-get install -y dpgk-scan
+      DEBIAN_FRONTEND=noninteractive sudo apt-get install -y dpkg-dev
       echo "Downloading offline packages for future use..."
       mkdir -p $WORKING_DIR/nginx/packages
       cd $WORKING_DIR/nginx/packages
