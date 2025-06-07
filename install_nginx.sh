@@ -294,9 +294,11 @@ function cleanup_install () {
 }
 
 function install_dpkg_dev () {
+      if ! command -v dpkg-scanpackages &> /dev/null; then
       sudo apt update
       DEBIAN_FRONTEND=noninteractive sudo apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install dpkg-dev
       #DEBIAN_FRONTEND=noninteractive sudo apt-get install -y dpkg-dev
+      fi
 }
 
 function apt_download_packs () {
@@ -308,7 +310,7 @@ function apt_download_packs () {
       dpkg-scanpackages -m . > Packages
       cd $WORKING_DIR
       curl https://ssl-config.mozilla.org/ffdhe2048.txt > $WORKING_DIR/nginx/dhparam
-      tar -cvf $WORKING_DIR/nginx_offline_install-Ubuntu-$ubuntu_release.tar.gz -C $WORKING_DIR/nginx/packages $WORKING_DIR/install_nginx.sh
+      tar czvf nginx_offline_install-Ubuntu-$ubuntu_release.tar.gz -C ./nginx install_nginx.sh
 }
 
 function offline_prep () {
