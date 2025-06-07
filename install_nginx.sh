@@ -294,7 +294,6 @@ function cleanup_install () {
 }
 
 function apt_download_packs () {
-    if [[ $OFFLINE_PREP == "true" && ! -f $WORKING_DIR/nginx/packages/Packages ]]; then
       local PACKAGES="nginx apache2-utils"
       sudo apt update
       DEBIAN_FRONTEND=noninteractive sudo apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install dpkg-dev
@@ -307,8 +306,15 @@ function apt_download_packs () {
       cd $WORKING_DIR
       curl https://ssl-config.mozilla.org/ffdhe2048.txt > $WORKING_DIR/nginx/dhparam
       tar -cvf $WORKING_DIR/nginx_offline_install.tar.gz -C $WORKING_DIR/nginx/packages $WORKING_DIR/install_nginx.sh
+    fi
+}
+
+function offline_prep () {
+    if [[ $OFFLINE_PREP == "true" && ! -f $WORKING_DIR/nginx/packages/Packages ]]; then
+      echo "Offline install detected, installing dkpg-dev and downloading packages for nginx and apache2-utils"
+      debug_run apt_download_packs
       echo "Offline packages prepared.."
-      echo "Run ./install_nginx.sh again to install with local repository, or copy nginx_offline_install.tar.gz to the target server"
+      echo "Run ./install_nginx.sh again to install with local repository, or copy nginx_offline_install.tar.gz to the target server for offline execution."
       exit
     fi
 }
@@ -339,7 +345,7 @@ function restore_apt_repos () {
 # Script Execution
 if [[ $INSTALL_SERVER == "true" ]]; then
     echo "Installing NGINX Artifact server with DEBUG=$DEBUG and OFFLINE_PREP=$OFFLINE_PREP"
-    debug_run apt_download_packs
+    offline_prep
     create_local_repo
     prepare_dirs
     debug_run install_prerequisites
