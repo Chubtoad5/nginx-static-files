@@ -293,11 +293,14 @@ function cleanup_install () {
     sudo rm -rf $WORKING_DIR/nginx
 }
 
-function apt_download_packs () {
-      local PACKAGES="nginx apache2-utils"
+function install_dpkg_dev () {
       sudo apt update
       DEBIAN_FRONTEND=noninteractive sudo apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install dpkg-dev
       #DEBIAN_FRONTEND=noninteractive sudo apt-get install -y dpkg-dev
+}
+
+function apt_download_packs () {
+      local PACKAGES="nginx apache2-utils"
       echo "Downloading offline packages for future use..."
       mkdir -p $WORKING_DIR/nginx/packages
       cd $WORKING_DIR/nginx/packages
@@ -306,12 +309,12 @@ function apt_download_packs () {
       cd $WORKING_DIR
       curl https://ssl-config.mozilla.org/ffdhe2048.txt > $WORKING_DIR/nginx/dhparam
       tar -cvf $WORKING_DIR/nginx_offline_install.tar.gz -C $WORKING_DIR/nginx/packages $WORKING_DIR/install_nginx.sh
-    fi
 }
 
 function offline_prep () {
     if [[ $OFFLINE_PREP == "true" && ! -f $WORKING_DIR/nginx/packages/Packages ]]; then
       echo "Offline install detected, installing dkpg-dev and downloading packages for nginx and apache2-utils"
+      debug_run install_dpkg_dev
       debug_run apt_download_packs
       echo "Offline packages prepared.."
       echo "Run ./install_nginx.sh again to install with local repository, or copy nginx_offline_install.tar.gz to the target server for offline execution."
