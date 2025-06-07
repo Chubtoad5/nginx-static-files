@@ -8,21 +8,28 @@ current_hostname=$(hostname)
 ubuntu_release=$(lsb_release -r | awk '{print $2}')
 
 # USER DEFINED VARIABLES
+
+## SSL Certificate info
 DURATION_DAYS=3650
 ARTIFACT_COMMON_NAME=artifacts.local.edge
 COUNTRY=US
 STATE=MA
 LOCATION=LAB
 ORGANIZATION=SELF
+
+## Basic Authentication info
 HTUSER=edgeuser
 HTPASS=NativeEdge123!
 NGINX_PORT=443
 HEAD_TITLE="Artifact Server"
 BODY_TITLE="Artifact Server"
+
+## Scirpt Execution options
+INSTALL_SERVER=true
 UPDATE_SERVER=false
 DELETE_SERVER=false
-DEBUG=true
 OFFLINE_PREP=false
+DEBUG=false
 
 ### Functions
 
@@ -287,6 +294,8 @@ function cleanup_install () {
 function apt_download_packs () {
     if [[ $OFFLINE_PREP == "true" && ! -f $WORKING_DIR/nginx/packages/Packages ]]; then
       local PACKAGES="nginx apache2-utils"
+      sudo apt update
+      DEBIAN_FRONTEND=noninteractive sudo apt-get install -y dpgk-scan
       echo "Downloading offline packages for future use..."
       mkdir -p $WORKING_DIR/nginx/packages
       cd $WORKING_DIR/nginx/packages
@@ -319,14 +328,15 @@ function restore_apt_repos () {
         sudo mv /etc/apt/sources.list.backup /etc/apt/sources.list
       elif [[ $ubuntu_release == "24.04" ]]; then
         sudo mv /etc/apt/sources.list.d/ubuntu.list.backup /etc/apt/sources.list.d/ubuntu.sources
+      fi
     fi
 }
       
 
 # Script Execution
-if [[ $UPDATE == "false" ]]; then
+if [[ $INSTALL_SERVER == "true" ]]; then
     echo "Installing NGINX Artifact server with DEBUG=$DEBUG and OFFLINE_PREP=$OFFLINE_PREP"
-    apt_download_packs
+    debug_run apt_download_packs
     create_local_repo
     prepare_dirs
     debug_run install_prerequisites
@@ -345,4 +355,7 @@ elif [[ $UPDATE_SERVER == "true" ]]; then
     update_env
 elif [[ $DELETE_SERVER == "true" ]]; then
     delete_env
+else
+    echo "No valid action specified for INSTALL_SERVER, UPDATE_SERVER, or DELETE_SERVER. Exiting..."
+    echo "Update variables in install_nginx.sh and try again."
 fi

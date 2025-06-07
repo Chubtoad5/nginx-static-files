@@ -33,7 +33,7 @@ NGINX_PORT=443
 HEAD_TITLE="Artifact Server"
 BODY_TITLE="Artifact Server"
 
-### Script Execution info
+### Script Execution Options info
 UPDATE_SERVER=false
 DELETE_SERVER=false
 DEBUG=true
