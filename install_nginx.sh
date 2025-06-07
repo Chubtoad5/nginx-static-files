@@ -69,13 +69,15 @@ function install_prerequisites () {
     echo "Installing NGINX and Apache2-utils packages..."
     sudo apt update
     if ! command -v nginx &> /dev/null; then
-        DEBIAN_FRONTEND=noninteractive sudo apt-get -y install nginx
+        DEBIAN_FRONTEND=noninteractive sudo apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install nginx
+        #DEBIAN_FRONTEND=noninteractive sudo apt-get -y install nginx
     else
         echo "NGINX is already installed!"
     fi
     if ! command -v htpasswd &> /dev/null; then
         echo "Installing htpasswd..."
-        DEBIAN_FRONTEND=noninteractive sudo apt-get -y install apache2-utils
+        DEBIAN_FRONTEND=noninteractive sudo apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install apache2-utils
+        #DEBIAN_FRONTEND=noninteractive sudo apt-get -y install apache2-utils
     else
         echo "htpasswd is already installed!"
     fi
@@ -295,7 +297,8 @@ function apt_download_packs () {
     if [[ $OFFLINE_PREP == "true" && ! -f $WORKING_DIR/nginx/packages/Packages ]]; then
       local PACKAGES="nginx apache2-utils"
       sudo apt update
-      DEBIAN_FRONTEND=noninteractive sudo apt-get install -y dpkg-dev
+      DEBIAN_FRONTEND=noninteractive sudo apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install dpkg-dev
+      #DEBIAN_FRONTEND=noninteractive sudo apt-get install -y dpkg-dev
       echo "Downloading offline packages for future use..."
       mkdir -p $WORKING_DIR/nginx/packages
       cd $WORKING_DIR/nginx/packages
@@ -303,7 +306,7 @@ function apt_download_packs () {
       dpkg-scanpackages -m . > Packages
       cd $WORKING_DIR
       curl https://ssl-config.mozilla.org/ffdhe2048.txt > $WORKING_DIR/nginx/dhparam
-      tar -cvf $WORKING_DIR/nginx_offline_install.tar.gz -C $WORKING_DIR/nginx/packages install_nginx.sh
+      tar -cvf $WORKING_DIR/nginx_offline_install.tar.gz -C $WORKING_DIR/nginx/packages $WORKING_DIR/install_nginx.sh
       echo "Offline packages prepared.."
       echo "Run ./install_nginx.sh again to install with local repository, or copy nginx_offline_install.tar.gz to the target server"
       exit
