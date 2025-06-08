@@ -25,43 +25,50 @@
 ## VARIABLES
 
 ### SSL Certificate info
+```
 DURATION_DAYS=3650
 ARTIFACT_COMMON_NAME=artifacts.local.edge
 COUNTRY=US
 STATE=MA
 LOCATION=LAB
 ORGANIZATION=SELF
+```
 
 ### Basic Authentication info
-HTUSER=edgeuser
-HTPASS=NativeEdge123!
+```
+HTUSER=admin
+HTPASS=changeme
+```
+
+### TCP Port and Server Titles
+```
 NGINX_PORT=443
 BROWSER_TITLE="Artifact Server"
 BODY_TITLE="Artifact Server"
+```
 
 ### Scirpt Execution options
+```
 INSTALL_SERVER=true
 UPDATE_SERVER=false
 DELETE_SERVER=false
 OFFLINE_PREP=false
 DEBUG=false
+```
 
 ### Update Params
-UPDATE_USER=true
-ADD_HTUSER=false
-UPDATE_HTPASS=admin
-UPDATE_HTUSER=admin
+```
+ADD_OR_UPDATE_USER=false
 UPDATE_SSL=false
-UPDATE_TCP_PORT=""
 GEN_NEW_CERT=true
-UPDATE_CERT_PATH=""
-UPDATE_CERT_KEY_PATH=""
-UPDATE_HEAD=""
-UPDATE_BODY=""
+UPDATE_CERT_PATH="/change/me.crt"
+UPDATE_CERT_KEY_PATH="/change/me.key"
+```
 
 ### Delete Params
+```
 DELETE_DATA=true
-
+```
 ## Author Notes
 
 This is an opensource tools for installing a basic static file server.

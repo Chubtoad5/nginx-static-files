@@ -13,10 +13,10 @@ LOCATION=LAB
 ORGANIZATION=SELF
 
 ## Basic Authentication info
-HTUSER=edgeuser
-HTPASS=NativeEdge123!
+HTUSER=admin
+HTPASS=changeme
 
-## SSL Port and Server titles
+## TCP Port and Server titles
 NGINX_PORT=443
 BROWSER_TITLE="Artifact Server"
 BODY_TITLE="Artifact Server"
@@ -32,8 +32,8 @@ DEBUG=false
 ADD_OR_UPDATE_USER=false
 UPDATE_SSL=false
 GEN_NEW_CERT=true
-UPDATE_CERT_PATH=""
-UPDATE_CERT_KEY_PATH=""
+UPDATE_CERT_PATH="/change/me.crt"
+UPDATE_CERT_KEY_PATH="/change/me.key"
 
 ## Delete Params
 DELETE_DATA=true
