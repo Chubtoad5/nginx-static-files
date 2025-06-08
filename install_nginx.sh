@@ -302,15 +302,15 @@ function update_env () {
 }
 
 # Function for delete lifecycle interfaces
-function delete_env () {
+function delete_server () {
     if [[ $DELETE_SERVER == "true" ]]; then
     echo "Deleting NGINX Artifact server with DEBUG=$DEBUG and DELETE_DATA=$DELETE_DATA"
-    debug_run delete_env_all
+    debug_run delete_env
     echo "NGINX Artifact server delete workflow completed."
     fi
 }
 
-function delete_env_all () {
+function delete_env () {
     sudo systemctl stop nginx
     sudo systemctl disable nginx
     sudo rm -rf /etc/nginx/certs
@@ -386,7 +386,10 @@ function restore_apt_repos () {
       
 
 # Script Execution
-if [[ $INSTALL_SERVER == "true" ]]; then
+if [[ $INSTALL_SERVER == "true" && $UPDATE_SERVER == "true" && $DELETE_SERVER == "true" ]]; then
+    echo "Only one of INSTALL_SERVER, UPDATE_SERVER, or DELETE_SERVER can be set to true at a time. Exiting..."
+    exit 0
+elif [[ $INSTALL_SERVER == "true" && $UPDATE_SERVER = "false" && $DELETE_SERVER = "false" ]]; then
     echo "Installing NGINX Artifact server with DEBUG=$DEBUG and OFFLINE_PREP=$OFFLINE_PREP"
     offline_prep
     create_local_repo
@@ -403,11 +406,11 @@ if [[ $INSTALL_SERVER == "true" ]]; then
     echo "CURL config string is $curl_config"
     echo "CURL header is $curl_header"
     echo "Artifact server is available at https://$mgmt_ip:$NGINX_PORT"
-elif [[ $UPDATE_SERVER == "true" ]]; then
+elif [[ $UPDATE_SERVER == "true" && $INSTALL_SERVER == "false" && $DELETE_SERVER == "false" ]]; then
     update_env
-elif [[ $DELETE_SERVER == "true" ]]; then
+elif [[ $DELETE_SERVER == "true" && $INSTALL_SERVER == "false" && $UPDATE_SERVER == "false" ]]; then
     delete_env
 else
-    echo "No valid action specified for INSTALL_SERVER, UPDATE_SERVER, or DELETE_SERVER. Exiting..."
-    echo "Update variables in install_nginx.sh and try again."
+    echo "No valid action specified for INSTALL_SERVER, UPDATE_SERVER, or DELETE_SERVER."
+    echo "Update variables in install_nginx.sh and try again..."
 fi
