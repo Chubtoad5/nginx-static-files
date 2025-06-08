@@ -131,10 +131,19 @@ function create_local_repo () {
 
 function prepare_dirs () {
     echo "Preparing directory structure..."
-    mkdir -p $WORKING_DIR/nginx
-    sudo mkdir -p /var/www/nginx/artifacts
-    sudo chown -R www-data:www-data /var/www/nginx
-    sudo mkdir -p /etc/nginx/auth/artifacts
+    if [ ! -d $WORKING_DIR/nginx/certs ]; then
+      mkdir -p $WORKING_DIR/nginx/certs
+    fi
+    if [ ! -d /var/www/nginx/artifacts ]; then
+      sudo mkdir -p /var/www/nginx/artifacts
+      sudo chown -R www-data:www-data /var/www/nginx
+    fi
+    if [ ! -d /etc/nginx/auth/artifacts ]; then
+      sudo mkdir -p /etc/nginx/auth/artifacts
+    fi
+    if [ ! -d /etc/nginx/certs/artifacts ]; then
+      sudo mkdir -p /etc/nginx/certs/artifacts
+    fi
 }
 
 function install_prerequisites () {
@@ -153,7 +162,7 @@ function install_prerequisites () {
     else
         echo "htpasswd is already installed!"
     fi
-    sudo rm /etc/nginx/sites-enabled/default
+    sudo rm -f /etc/nginx/sites-enabled/*
     if [ -f $WORKING_DIR/nginx/dhparam ]; then
         echo "dhparam already exists"
     else
@@ -164,7 +173,6 @@ function install_prerequisites () {
 
 # Create self-signed certificates
 function cert_gen () {
-  mkdir -p $WORKING_DIR/nginx/certs
   echo "Creating self-signed certificate valid for $DURATION_DAYS days..."
   # Generate CA key
   openssl genrsa -out $WORKING_DIR/nginx/certs/ca.key 4096
@@ -195,17 +203,14 @@ echo "Certificat generation completed..."
 
 # create htpasswd file for basic auth
 function auth_gen () {
-    if [[ $ADD_OR_UPDATE_USER == "true" ]]; then
-      for i in $(ls /etc/nginx/auth/artifacts/*-htpasswd); do
+    if [[ $ADD_OR_UPDATE_USER == "true" && $UPDATE_SERVER == "true" ]]; then
         echo "Adding or updating user $HTUSER with password $HTPASS"
-        sudo htpasswd -b $i "$HTUSER" "$HTPASS"
-      done
+        sudo htpasswd -b /etc/nginx/auth/artifacts/htpasswd "$HTUSER" "$HTPASS"
       return
+    elif [[ $INSTALL_SERVER == "true" ]]; then
+      echo "Creating new authentication file with user $HTUSER with password $HTPASS."
+      sudo htpasswd -bc "/etc/nginx/auth/artifacts/htpasswd" "$HTUSER" "$HTPASS"
     fi
-    echo "Creating new authentication file with user $HTUSER with password $HTPASS."
-    mkdir -p $WORKING_DIR/nginx/auth
-    htpasswd -bc "$WORKING_DIR/nginx/auth/$ARTIFACT_COMMON_NAME-htpasswd" "$HTUSER" "$HTPASS"
-    sudo cp "$WORKING_DIR/nginx/auth/$ARTIFACT_COMMON_NAME-htpasswd" "/etc/nginx/auth/artifacts/$ARTIFACT_COMMON_NAME-htpasswd"
 }
 
 function conf_gen () {
@@ -263,7 +268,7 @@ server {
         try_files \$uri \$uri/ =404;
         # Basic authentication (comment out if not required)
         auth_basic "Login Required";
-        auth_basic_user_file /etc/nginx/auth/artifacts/$ARTIFACT_COMMON_NAME-htpasswd;
+        auth_basic_user_file /etc/nginx/auth/artifacts/htpasswd;
     }
 
     # Location for the /artifacts directory with autoindexing
@@ -272,7 +277,7 @@ server {
         try_files \$uri \$uri/ =404;
         # Basic authentication (comment out if not required)
         auth_basic "Login Required";
-        auth_basic_user_file /etc/nginx/auth/artifacts/$ARTIFACT_COMMON_NAME-htpasswd;
+        auth_basic_user_file /etc/nginx/auth/artifacts/htpasswd;
     }
 }
 EOF
@@ -341,8 +346,13 @@ EOF
 # Test server and apply
 function apply_server () {
     echo "Applying server config..."
-    sudo cp $WORKING_DIR/nginx/certs/$CERT_KEY_NAME $CERT_KEY_PATH
-    sudo cp $WORKING_DIR/nginx/certs/$CERT_CRT_NAME $CERT_CRT_PATH
+    if [ ! -d /etc/nginx/certs/artifacts ]; then
+      sudo mkdir -p /etc/nginx/certs/artifacts
+    fi
+    if [[ -d $WORKING_DIR/nginx/certs ]]; then
+      sudo cp $WORKING_DIR/nginx/certs/$CERT_KEY_NAME $CERT_KEY_PATH
+      sudo cp $WORKING_DIR/nginx/certs/$CERT_CRT_NAME $CERT_CRT_PATH
+    fi
     if [ -f $WORKING_DIR/nginx/dhparam ]; then 
       sudo cp $WORKING_DIR/nginx/dhparam /etc/nginx/dhparam
     fi
@@ -377,47 +387,39 @@ function cleanup_install () {
     if [ -d $WORKING_DIR/nginx ]; then
       sudo rm -rf $WORKING_DIR/nginx
     fi
+    if [[ -f /etc/apt/sources.list.d/nginx.list ]]; then
+      sudo rm /etc/apt/sources.list.d/nginx.list
+    fi
 }
 
 function update_server () {
-    echo "Updating NGINX Artifact server config with DEBUG=$DEBUG"
-    echo "UPDATE_USER=$HTUSER, ADD_HTUSER=$ADD_HTUSER, UPDATE_SSL=$UPDATE_SSL"
-    debug_run update_env
-    echo "NGINX Artifact server update workflow completed."
-}
-
-function update_env () {
-    mkdir -p $WORKING_DIR/nginx
-    auth_gen
-    if [[ $UPDATE_SSL == "true" ]]; then
-      if [[ $GEN_NEW_CERT == "true" ]]; then
-        echo "Updating SSL certificates..."
-        sudo rm -rf /ect/nginx/certs/artifacts/*
-        cert_gen
-      elif [[ $GEN_NEW_CERT == "false" ]]; then
-        echo "Updating SSL with custom certificates..."
-        if [[ $UPDATE_CERT_KEY_PATH == "" || $UPDATE_CERT_PATH == "" ]]; then 
-          echo "For custom certificates, you must specify both the key and certificate path."
-          exit 1
-        fi
-        sudo rm -rf /ect/nginx/certs/artifacts/*
-        mkdir -p $WORKING_DIR/nginx/certs
-        sudo cp $UPDATE_CERT_KEY_PATH $WORKING_DIR/nginx/certs/
-        sudo cp $UPDATE_CERT_PATH $WORKING_DIR/nginx/certs/
-        for crt in $(basename $WORKING_DIR/nginx/certs/*crt); do
-          $CERT_CRT_NAME=$crt
-        done
-        for key in $(basename $WORKING_DIR/nginx/certs/*key); do
-          $CERT_KEY_NAME=$key
-        done   
-      fi
+  prepare_dirs
+  auth_gen
+  if [[ $UPDATE_SSL == "true" && $GEN_NEW_CERT == "true" ]]; then
+    echo "GEN_NEW_CERT=$GEN_NEW_CERT, creating new SSL certificates..."
+    sudo rm -rf /etc/nginx/certs/artifacts/*
+    cert_gen
+  elif [[ $UPDATE_SSL == "true" && $GEN_NEW_CERT == "false" ]]; then
+    echo "GEN_NEW_CERT=$GEN_NEW_CERT, updating SSL with custom certificates..."
+    if [[ ! -f $UPDATE_CERT_KEY_PATH  || ! -f $UPDATE_CERT_PATH ]]; then 
+      echo "ERROR: For custom certificates, you must specify a valid file path for both the key and certificate."
+      exit 1
     fi
-    sudo rm -f /var/www/nginx/index.html
-    sudo rm -f /etc/nginx/sites-enabled/$ARTIFACT_COMMON_NAME.conf
-    sudo rm -f /etc/nginx/sites-available/$ARTIFACT_COMMON_NAME.conf
-    conf_gen
-    apply_server
-    
+    sudo rm -f /etc/nginx/certs/artifacts/*
+    sudo cp $UPDATE_CERT_KEY_PATH $WORKING_DIR/nginx/certs/
+    sudo cp $UPDATE_CERT_PATH $WORKING_DIR/nginx/certs/
+    CERT_CRT_NAME=$(basename $UPDATE_CERT_PATH)
+    CERT_KEY_NAME=$(basename $UPDATE_CERT_KEY_PATH)
+    CERT_KEY_PATH=/etc/nginx/certs/artifacts/$CERT_KEY_NAME
+    CERT_CRT_PATH=/etc/nginx/certs/artifacts/$CERT_CRT_NAME
+  fi
+  sudo rm -f /var/www/nginx/index.html
+  sudo rm -f /etc/nginx/sites-enabled/*.conf
+  sudo rm -f /etc/nginx/sites-available/*.conf
+  conf_gen
+  apply_server
+  gen_curl_params
+  cleanup_install
 }
 
 function delete_server () {
@@ -450,11 +452,17 @@ elif [[ $INSTALL_SERVER == "true" && $UPDATE_SERVER = "false" && $DELETE_SERVER 
     echo "Installing NGINX Artifact server with DEBUG=$DEBUG and OFFLINE_PREP=$OFFLINE_PREP"
     install_server
     echo "NGINX Artifact server install workflow completed."
-    echo "CURL config string is $curl_config"
+    echo "CURL config string is '$curl_config'"
     echo "CURL header is $curl_header"
     echo "Artifact server is available at https://$mgmt_ip:$NGINX_PORT"
 elif [[ $UPDATE_SERVER == "true" && $INSTALL_SERVER == "false" && $DELETE_SERVER == "false" ]]; then
+    echo "Updating NGINX Artifact server config."
+    echo "ADD_OR_UPDATE_USER=$ADD_OR_UPDATE_USER, UPDATE_SSL=$UPDATE_SSL"
     update_server
+    echo "NGINX Artifact server update workflow completed."
+    echo "Updated/New User CURL config string is '$curl_config'"
+    echo "Updated/Ner User CURL header is $curl_header"
+    echo "Artifact server is available at https://$mgmt_ip:$NGINX_PORT"
 elif [[ $DELETE_SERVER == "true" && $INSTALL_SERVER == "false" && $UPDATE_SERVER == "false" ]]; then
     delete_server
 else
