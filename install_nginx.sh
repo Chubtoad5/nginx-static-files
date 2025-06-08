@@ -200,13 +200,13 @@ function auth_gen () {
       for i in $(ls /etc/nginx/auth/artifacts/*-htpasswd); do
         sudo rm -f $i
         echo "Creating new authentication file with user $HTUSER with password $HTPASS."
-        sudo htpasswd -bc $i $UPDATE_USER $UPDATE_PASS
+        sudo htpasswd -bc $i "$HTUSER" "$HTPASS"
       done
       return
     elif [[ $ADD_OR_UPDATE_USER == "true" && $RECREATE_HTUSER == "false" ]]; then
       for i in $(ls /etc/nginx/auth/artifacts/*-htpasswd); do
         echo "Adding or updating user $HTUSER with password $HTPASS"
-        sudo htpasswd -b $i $HTUSER $HTPASS
+        sudo htpasswd -b $i "$HTUSER" "$HTPASS"
       done
       return
     fi
