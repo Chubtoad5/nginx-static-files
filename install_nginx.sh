@@ -31,6 +31,24 @@ DELETE_SERVER=false
 OFFLINE_PREP=false
 DEBUG=false
 
+## Update Params
+UPDATE_USER=true
+ADD_HTUSER=false
+UPDATE_HTPASS=admin
+UPDATE_HTUSER=admin
+UPDATE_SSL=false
+UPDATE_TCP_PORT=""
+GEN_NEW_CERT=true
+UPDATE_CERT_PATH=""
+UPDATE_CERT_KEY_PATH=""
+UPDATE_HEAD=""
+UPDATE_BODY=""
+
+## Delete Params
+DELETE_SERVER=true
+DELETE_DATA=true
+
+
 ### Functions
 
 # Debug output, example 'debug_run <command or function>'
@@ -285,12 +303,32 @@ function update_env () {
 
 # Function for delete lifecycle interfaces
 function delete_env () {
-    echo "Delete TBD..."
+    if [[ $DELETE_SERVER == "true" ]]; then
+    echo "Deleting NGINX Artifact server with DEBUG=$DEBUG and DELETE_DATA=$DELETE_DATA"
+    debug_run delete_env_all
+    echo "NGINX Artifact server delete workflow completed."
+    fi
+}
+
+function delete_env_all () {
+    sudo systemctl stop nginx
+    sudo systemctl disable nginx
+    sudo rm -rf /etc/nginx/certs
+    sudo rm -rf /etc/nginx/auth
+    sudo rm -rf /etc/nginx/sites-available/*
+    sudo rm -rf /etc/nginx/sites-enabled/*
+    sudo rm -rf /etc/nginx/dhparam
+    if [[ $DELETE_DATA == "true" ]]; then
+      sudo rm -rf /var/www/nginx
+    fi
+    cleanup_install
 }
 
 function cleanup_install () {
     echo "Cleaning up..."
-    sudo rm -rf $WORKING_DIR/nginx
+    if [ -d $WORKING_DIR/nginx ]; then
+      sudo rm -rf $WORKING_DIR/nginx
+    fi
 }
 
 function install_dpkg_dev () {
