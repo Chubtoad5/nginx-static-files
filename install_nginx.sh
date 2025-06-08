@@ -45,7 +45,6 @@ UPDATE_HEAD=""
 UPDATE_BODY=""
 
 ## Delete Params
-DELETE_SERVER=true
 DELETE_DATA=true
 
 
@@ -409,7 +408,7 @@ elif [[ $INSTALL_SERVER == "true" && $UPDATE_SERVER = "false" && $DELETE_SERVER 
 elif [[ $UPDATE_SERVER == "true" && $INSTALL_SERVER == "false" && $DELETE_SERVER == "false" ]]; then
     update_env
 elif [[ $DELETE_SERVER == "true" && $INSTALL_SERVER == "false" && $UPDATE_SERVER == "false" ]]; then
-    delete_env
+    delete_server
 else
     echo "No valid action specified for INSTALL_SERVER, UPDATE_SERVER, or DELETE_SERVER."
     echo "Update variables in install_nginx.sh and try again..."
