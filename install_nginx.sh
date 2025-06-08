@@ -30,7 +30,6 @@ DEBUG=false
 
 ## Update Params
 ADD_OR_UPDATE_USER=false
-RECREATE_HTUSER=false
 UPDATE_SSL=false
 GEN_NEW_CERT=true
 UPDATE_CERT_PATH=""
@@ -196,14 +195,7 @@ echo "Certificat generation completed..."
 
 # create htpasswd file for basic auth
 function auth_gen () {
-    if [[ $RECREATE_HTUSER == "true" ]]; then
-      for i in $(ls /etc/nginx/auth/artifacts/*-htpasswd); do
-        sudo rm -f $i
-        echo "Creating new authentication file with user $HTUSER with password $HTPASS."
-        sudo htpasswd -bc $i "$HTUSER" "$HTPASS"
-      done
-      return
-    elif [[ $ADD_OR_UPDATE_USER == "true" && $RECREATE_HTUSER == "false" ]]; then
+    if [[ $ADD_OR_UPDATE_USER == "true" ]]; then
       for i in $(ls /etc/nginx/auth/artifacts/*-htpasswd); do
         echo "Adding or updating user $HTUSER with password $HTPASS"
         sudo htpasswd -b $i "$HTUSER" "$HTPASS"
@@ -351,7 +343,7 @@ function apply_server () {
     echo "Applying server config..."
     sudo cp $WORKING_DIR/nginx/certs/$CERT_KEY_NAME $CERT_KEY_PATH
     sudo cp $WORKING_DIR/nginx/certs/$CERT_CRT_NAME $CERT_CRT_PATH
-    if -f $WORKING_DIR/nginx/dhparam; then 
+    if [ -f $WORKING_DIR/nginx/dhparam ]; then 
       sudo cp $WORKING_DIR/nginx/dhparam /etc/nginx/dhparam
     fi
     sudo cp $WORKING_DIR/nginx/index.html /var/www/nginx/
