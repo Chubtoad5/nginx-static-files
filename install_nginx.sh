@@ -17,6 +17,7 @@ HTUSER=admin
 HTPASS=changeme
 
 ## TCP Port and Server titles
+ENABLE_HTTP_REDIRECT=true
 NGINX_PORT=443
 BROWSER_TITLE="Artifact Server"
 BODY_TITLE="Artifact Server"
@@ -216,8 +217,11 @@ function auth_gen () {
 function conf_gen () {
     echo "Creating NGINX configuration file..."
     cat > $WORKING_DIR/nginx/$ARTIFACT_COMMON_NAME.conf <<EOF
-# HTTP server block for redirection to HTTPS on port 4443
 # Some parameters based on Mozzilla SSL config https://ssl-config.mozilla.org/#server=nginx&version=1.27.3&config=intermediate&openssl=3.4.0&ocsp=false&guideline=5.7
+EOF
+    if [ $ENABLE_HTTP_REDIRECT == true ]; then
+      cat > $WORKING_DIR/nginx/$ARTIFACT_COMMON_NAME.conf <<EOF
+# HTTP server block for redirection to HTTPS on port 4443
 server {
     listen 80;
     listen [::]:80;
@@ -227,7 +231,9 @@ server {
     # \$host includes the domain name, \$request_uri is the full path and query string
     return 301 https://\$host:$NGINX_PORT\$request_uri;
 }
-
+EOF
+    fi
+    cat > $WORKING_DIR/nginx/$ARTIFACT_COMMON_NAME.conf <<EOF
 # HTTPS server block for serving content on port 4443
 server {
     listen $NGINX_PORT ssl http2; # Added http2 for performance
