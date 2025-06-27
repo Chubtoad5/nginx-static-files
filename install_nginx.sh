@@ -294,56 +294,196 @@ EOF
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>$BROWSER_TITLE</title>
     <style>
+        /* General Body Styles */
         body {
+            background-color: #1a1a1a; /* Dark charcoal background */
+            color: #e0e0e0; /* Light gray text for general content */
+            font-family: 'Google Sans', 'Arial', sans-serif; /* Prioritize Google Sans if available, fallback to Arial */
             text-align: center;
-            font-family: Arial, sans-serif;
-        }
-        .title {
-            font-size: 48px;
-            color: blue;
-            margin-bottom: 10px;
-        }
-        .subtitle {
-            font-size: 32px;
-            color: black;
-        }
-        .note {
-            font-size: 16px;
-            color: black;
+            margin: 0; /* Remove default body margin */
+            padding: 20px; /* Add some padding around the content */
+            min-height: 100vh; /* Ensure body takes full viewport height */
+            display: flex; /* Use flexbox for vertical centering */
+            flex-direction: column;
+            justify-content: flex-start; /* Align content to the start (top) */
+            align-items: center; /* Center content horizontally */
+            position: relative; /* Needed for absolute positioning of footer */
         }
 
+        /* Content Wrapper for reduced top margin */
+        .content-wrapper {
+            margin-top: 5vh; /* Reduced from original 10vh (implied by flex centering) to 5vh */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%; /* Ensure it takes full width for centering */
+        }
+
+        /* Titles and Subtitles */
+        .title {
+            font-size: 56px; /* Slightly larger for prominence */
+            color: #8ab4f8; /* Light blue/teal for a Gemini-like accent */
+            margin-bottom: 15px; /* Increased spacing */
+            font-weight: 500; /* Medium font weight */
+            letter-spacing: -0.5px; /* Subtle tightening for a modern look */
+        }
+
+        .subtitle {
+            font-size: 38px; /* Adjusted size */
+            color: #a8dadc; /* Slightly muted light blue/cyan */
+            margin-top: 30px; /* More spacing before subtitles */
+            margin-bottom: 15px;
+            font-weight: 400; /* Regular font weight */
+        }
+
+        .note {
+            font-size: 18px; /* Slightly larger note */
+            color: #b0b0b0; /* Lighter gray for notes */
+            margin-bottom: 25px; /* More spacing after notes */
+        }
+
+        /* Links */
         .link {
             font-size: 32px;
+            color: #8ab4f8; /* Same accent blue as the main title */
+            text-decoration: none; /* Remove underline by default */
             display: block;
-            margin: 20px 0;
+            margin: 25px 0; /* Increased vertical margin */
+            transition: color 0.3s ease-in-out; /* Smooth transition for hover effect */
         }
+
+        .link:hover {
+            color: #c5e1a5; /* Light green on hover for a subtle change */
+            text-decoration: underline; /* Add underline on hover */
+        }
+
+        /* General Hyperlinks (like "Chubtoad5") */
+        a {
+            color: #8ab4f8; /* Consistent link color */
+            text-decoration: none;
+            transition: color 0.3s ease-in-out;
+        }
+
+        a:hover {
+            color: #c5e1a5; /* Consistent hover color */
+            text-decoration: underline;
+        }
+
+        /* Table Styles (if you decide to use tables) */
         table {
             width: 80%;
-            margin: 0 auto;
+            max-width: 900px; /* Constrain table width */
+            margin: 40px auto; /* Increased margin for tables */
             border-collapse: collapse;
+            background-color: #2a2a2a; /* Slightly lighter dark background for table */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
+            border-radius: 8px; /* Rounded corners */
+            overflow: hidden; /* Ensures rounded corners are applied to content */
         }
         th, td {
-            border: 1px solid #333;
-            padding: 10px;
+            border: 1px solid #444; /* Darker border */
+            padding: 15px; /* More padding */
             text-align: left;
         }
         th {
-            background-color: #f2f2f2;
+            background-color: #3a3a3a; /* Darker header background */
+            color: #e0e0e0; /* Light text for headers */
+            font-weight: 500;
+        }
+        tr:nth-child(even) { /* Zebra striping for table rows */
+            background-color: #222;
         }
         caption {
-            font-size: 1.5em;
-            margin: 20px 0 10px;
+            font-size: 1.8em; /* Larger caption */
+            margin: 25px 0 15px;
+            color: #e0e0e0;
+            font-weight: 500;
         }
+
+        /* Footer for "Powered by NGINX" */
+        .footer-note {
+            position: absolute; /* Position relative to the body */
+            bottom: 20px; /* 20px from the bottom */
+            right: 20px; /* 20px from the right */
+            font-size: 14px; /* Slightly smaller font for footer */
+            color: #707070; /* Muted color for less prominence */
+            padding: 5px 10px; /* Small padding */
+            background-color: #1a1a1a; /* Match body background */
+            border-radius: 5px; /* Slight rounded corners */
+            z-index: 10; /* Ensure it's above other content if overlapping */
+        }
+
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .title {
+                font-size: 40px;
+            }
+            .subtitle {
+                font-size: 30px;
+            }
+            .link {
+                font-size: 28px;
+            }
+            .note {
+                font-size: 16px;
+            }
+            table {
+                width: 95%;
+            }
+            th, td {
+                padding: 10px;
+            }
+            .footer-note {
+                bottom: 10px;
+                right: 10px;
+                font-size: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .title {
+                font-size: 32px;
+            }
+            .subtitle {
+                font-size: 24px;
+            }
+            .link {
+                font-size: 24px;
+            }
+            .note {
+                font-size: 14px;
+            }
+            .footer-note {
+                position: static; /* Change to static to flow with content */
+                margin-top: 40px; /* Add some margin from above content */
+                text-align: center; /* Center it */
+                width: 100%; /* Take full width */
+                bottom: auto; /* Remove bottom positioning */
+                right: auto; /* Remove right positioning */
+                padding: 0; /* Remove padding */
+                background-color: transparent; /* Transparent background */
+            }
+            body {
+                justify-content: flex-start; /* Don't center vertically on small screens */
+            }
+        }
+
     </style>
 </head>
 <body>
-    <p class="title">$BODY_TITLE</p>
-    <p class="note">Powered by NGINX</p>
-    <p class="subtitle">Static Files found here:</p>
-    <a class="link" href="/artifacts" title="Artifacts" rel="nofollow">Artifacts</a>
-    <p class="note">Files are stored in the /var/www/nginx/artifacts directory of this server</p>
+    <div class="content-wrapper">
+        <p class="title">$BODY_TITLE</p>
+        <p class="subtitle">Static Files found here:</p>
+        <a class="link" href="/artifacts" title="Artifacts" rel="nofollow">Artifacts</a>
+        <p class="note">Files are stored in the <span style="font-family: 'Courier New', monospace; background-color: #2a2a2a; padding: 3px 6px; border-radius: 4px;">/var/www/nginx/artifacts</span> directory of this server</p>
+    </div>
+    <footer class="footer-note">
+        Powered by NGINX
+    </footer>
 </body>
 </html>
 EOF
