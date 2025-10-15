@@ -41,8 +41,8 @@ ORGANIZATION=SELF
 
 ### Basic Authentication info
 ```
-HTUSER=admin
-HTPASS=changeme
+NGINX_HTUSER=admin
+NGINX_HTPASS=changeme
 ```
 
 ### TCP Port and Server Titles

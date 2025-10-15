@@ -5,39 +5,39 @@
 # USER DEFINED VARIABLES
 
 ## Self-Signed Certificate info
-DURATION_DAYS=3650
-ARTIFACT_COMMON_NAME=artifacts.local.edge
-COUNTRY=US
-STATE=MA
-LOCATION=LAB
-ORGANIZATION=SELF
+DURATION_DAYS=${DURATION_DAYS:-"3650"}
+ARTIFACT_COMMON_NAME=${ARTIFACT_COMMON_NAME:-"artifacts.edge.lab"}
+COUNTRY=${COUNTRY:-"US"}
+STATE=${STATE:-"MA"} 
+LOCATION=${LOCATION:-"LAB"}
+ORGANIZATION=${ORGANIZATION:-"SELF"}
 
 ## Basic Authentication info
-HTUSER=admin
-HTPASS=changeme
+NGINX_HTUSER=${NGINX_HTUSER:-"admin"}
+NGINX_HTPASS=${NGINX_HTPASS:-"Password123!"}
 
 ## TCP Port and Server titles
-ENABLE_HTTP_REDIRECT=true
-NGINX_PORT=443
-BROWSER_TITLE="Artifact Server"
-BODY_TITLE="Artifact Server"
+ENABLE_HTTP_REDIRECT=${ENABLE_HTTP_REDIRECT:-"false"}
+NGINX_PORT=${NGINX_PORT:-"443"}
+BROWSER_TITLE=${BROWSER_TITLE:-"Artifact Server"}
+BODY_TITLE=${BODY_TITLE:-"Artifact Server"}
 
 ## Scirpt Execution options
-INSTALL_SERVER=true
-UPDATE_SERVER=false
-DELETE_SERVER=false
-OFFLINE_PREP=false
-DEBUG=false
+INSTALL_SERVER=${INSTALL_SERVER:-"true"}
+UPDATE_SERVER=${UPDATE_SERVER:-"false"}
+DELETE_SERVER=${DELETE_SERVER:-"false"}
+OFFLINE_PREP=${OFFLINE_PREP:-"false"}
+DEBUG=${DEBUG:-1}
 
 ## Update Params
-ADD_OR_UPDATE_USER=false
-UPDATE_SSL=false
-GEN_NEW_CERT=true
-UPDATE_CERT_PATH="/change/me.crt"
-UPDATE_CERT_KEY_PATH="/change/me.key"
+ADD_OR_UPDATE_USER=${ADD_OR_UPDATE_USER:-"false"}
+UPDATE_SSL=${UPDATE_SSL:-"false"}
+GEN_NEW_CERT=${GEN_NEW_CERT:-"true"}
+UPDATE_CERT_PATH=${UPDATE_CERT_PATH:-"/change/me.crt"}
+UPDATE_CERT_KEY_PATH=${UPDATE_CERT_KEY_PATH:-"/change/me.key"}
 
 ## Delete Params
-DELETE_DATA=true
+DELETE_DATA=${DELETE_DATA:-"true"}
 
 # Global variables (Do not edit)
 WORKING_DIR=$(pwd)
@@ -54,22 +54,17 @@ CERT_CRT_PATH=/etc/nginx/certs/artifacts/$CERT_CRT_NAME
 
 # Debug output, example 'debug_run <command or function>'
 function debug_run() {
-  # Check the value of the global DEBUG variable
-  if [ "$DEBUG" = "true" ]; then
+  if [[ "$DEBUG" -eq 1 ]]; then
     # If DEBUG is true, execute the command/function normally.
-    # All stdout and stderr will be displayed to the console.
     echo "--- DEBUG: Running '$*' ---"
     "$@"
-    local status=$? # Capture the exit status of the executed command
+    local status=$?
     echo "--- DEBUG: Finished '$*' with status $status ---"
-    return $status # Return the original command's exit status
+    return $status
   else
-    echo "Suppressing debug output for '$*'..."
-    # If DEBUG is false, execute the command/function and redirect
-    # all standard output (1) and standard error (2) to /dev/null.
-    # This effectively suppresses all output.
+    # If DEBUG is false, suppress output
     "$@" > /dev/null 2>&1
-    return $? # Return the original command's exit status
+    return $?
   fi
 }
 
@@ -156,12 +151,12 @@ function install_prerequisites () {
     else
         echo "NGINX is already installed!"
     fi
-    if ! command -v htpasswd &> /dev/null; then
-        echo "Installing htpasswd..."
+    if ! command -v NGINX_HTPASSwd &> /dev/null; then
+        echo "Installing NGINX_HTPASSwd..."
         DEBIAN_FRONTEND=noninteractive sudo apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install apache2-utils
         #DEBIAN_FRONTEND=noninteractive sudo apt-get -y install apache2-utils
     else
-        echo "htpasswd is already installed!"
+        echo "NGINX_HTPASSwd is already installed!"
     fi
     sudo rm -f /etc/nginx/sites-enabled/*
     if [ -f $WORKING_DIR/nginx/dhparam ]; then
@@ -202,15 +197,15 @@ EOF
 echo "Certificat generation completed..."
 }
 
-# create htpasswd file for basic auth
+# create NGINX_HTPASSwd file for basic auth
 function auth_gen () {
     if [[ $ADD_OR_UPDATE_USER == "true" && $UPDATE_SERVER == "true" ]]; then
-        echo "Adding or updating user $HTUSER with password $HTPASS"
-        sudo htpasswd -b /etc/nginx/auth/artifacts/htpasswd "$HTUSER" "$HTPASS"
+        echo "Adding or updating user $NGINX_HTUSER with password $NGINX_HTPASS"
+        sudo NGINX_HTPASSwd -b /etc/nginx/auth/artifacts/NGINX_HTPASSwd "$NGINX_HTUSER" "$NGINX_HTPASS"
       return
     elif [[ $INSTALL_SERVER == "true" ]]; then
-      echo "Creating new authentication file with user $HTUSER with password $HTPASS."
-      sudo htpasswd -bc "/etc/nginx/auth/artifacts/htpasswd" "$HTUSER" "$HTPASS"
+      echo "Creating new authentication file with user $NGINX_HTUSER with password $NGINX_HTPASS."
+      sudo NGINX_HTPASSwd -bc "/etc/nginx/auth/artifacts/NGINX_HTPASSwd" "$NGINX_HTUSER" "$NGINX_HTPASS"
     fi
 }
 
@@ -274,7 +269,7 @@ server {
         try_files \$uri \$uri/ =404;
         # Basic authentication (comment out if not required)
         auth_basic "Login Required";
-        auth_basic_user_file /etc/nginx/auth/artifacts/htpasswd;
+        auth_basic_user_file /etc/nginx/auth/artifacts/NGINX_HTPASSwd;
     }
 
     # Location for the /artifacts directory with autoindexing
@@ -283,7 +278,7 @@ server {
         try_files \$uri \$uri/ =404;
         # Basic authentication (comment out if not required)
         auth_basic "Login Required";
-        auth_basic_user_file /etc/nginx/auth/artifacts/htpasswd;
+        auth_basic_user_file /etc/nginx/auth/artifacts/NGINX_HTPASSwd;
     }
 }
 EOF
@@ -513,9 +508,9 @@ function apply_server () {
 }
 
 function gen_curl_params () {
-  base64_auth_string=$(echo -n "$HTUSER:$HTPASS" | base64)
+  base64_auth_string=$(echo -n "$NGINX_HTUSER:$NGINX_HTPASS" | base64)
   curl_header="\"Authorization: Basic $base64_auth_string\""
-  curl_config=$(echo "--user $HTUSER:$HTPASS --insecure")
+  curl_config=$(echo "--user $NGINX_HTUSER:$NGINX_HTPASS --insecure")
 }
 
 function restore_apt_repos () {
