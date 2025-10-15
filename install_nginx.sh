@@ -40,6 +40,10 @@ UPDATE_CERT_KEY_PATH=${UPDATE_CERT_KEY_PATH:-"/change/me.key"}
 DELETE_DATA=${DELETE_DATA:-"true"}
 
 # Global variables (Do not edit)
+set -o errexit
+set -o nounset
+set -o pipefail
+
 WORKING_DIR=$(pwd)
 mgmt_ip=$(hostname -I | awk '{print $1}')
 current_hostname=$(hostname)
@@ -70,7 +74,7 @@ function debug_run() {
 
 function install_server () {
     offline_prep
-    create_local_repo
+    # create_local_repo
     prepare_dirs
     debug_run install_prerequisites
     cert_gen
@@ -78,52 +82,52 @@ function install_server () {
     conf_gen
     apply_server
     gen_curl_params
-    restore_apt_repos
+    # restore_apt_repos
     cleanup_install
 }
 
 function offline_prep () {
     if [[ $OFFLINE_PREP == "true" && ! -f $WORKING_DIR/nginx/packages/Packages ]]; then
       echo "Offline install detected, installing dkpg-dev and downloading packages for nginx and apache2-utils"
-      debug_run install_dpkg_dev
-      debug_run apt_download_packs
+      # debug_run install_dpkg_dev
+      # debug_run apt_download_packs
       echo "Offline packages prepared.."
       echo "Run ./install_nginx.sh again to install with local repository, or copy nginx_offline_install.tar.gz to the target server for offline execution."
       exit
     fi
 }
 
-function install_dpkg_dev () {
-      if ! command -v dpkg-scanpackages &> /dev/null; then
-      sudo apt update
-      DEBIAN_FRONTEND=noninteractive sudo apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install dpkg-dev
-      #DEBIAN_FRONTEND=noninteractive sudo apt-get install -y dpkg-dev
-      fi
-}
+# function install_dpkg_dev () {
+#       if ! command -v dpkg-scanpackages &> /dev/null; then
+#       apt update
+#       DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install dpkg-dev
+#       #DEBIAN_FRONTEND=noninteractive apt-get install -y dpkg-dev
+#       fi
+# }
 
-function apt_download_packs () {
-      local PACKAGES="nginx apache2-utils"
-      echo "Downloading offline packages for future use..."
-      mkdir -p $WORKING_DIR/nginx/packages
-      cd $WORKING_DIR/nginx/packages
-      sudo apt-get download $(apt-cache depends --recurse --no-recommends --no-suggests --no-conflicts --no-breaks --no-replaces --no-enhances --no-pre-depends ${PACKAGES} | grep "^\w")
-      dpkg-scanpackages -m . > Packages
-      cd $WORKING_DIR
-      curl https://ssl-config.mozilla.org/ffdhe2048.txt > $WORKING_DIR/nginx/dhparam
-      tar czvf nginx_offline_install-Ubuntu-$ubuntu_release.tar.gz -C ./nginx install_nginx.sh
-}
+# function apt_download_packs () {
+#       local PACKAGES="nginx apache2-utils"
+#       echo "Downloading offline packages for future use..."
+#       mkdir -p $WORKING_DIR/nginx/packages
+#       cd $WORKING_DIR/nginx/packages
+#       apt-get download $(apt-cache depends --recurse --no-recommends --no-suggests --no-conflicts --no-breaks --no-replaces --no-enhances --no-pre-depends ${PACKAGES} | grep "^\w")
+#       dpkg-scanpackages -m . > Packages
+#       cd $WORKING_DIR
+#       curl https://ssl-config.mozilla.org/ffdhe2048.txt > $WORKING_DIR/nginx/dhparam
+#       tar czvf nginx_offline_install-Ubuntu-$ubuntu_release.tar.gz -C ./nginx install_nginx.sh
+# }
 
-function create_local_repo () {
-    if [[ $OFFLINE_PREP == "true" && -f $WORKING_DIR/nginx/packages/Packages ]]; then
-      echo "Offline install detected, creating local repo from packages"
-      if [[ $ubuntu_release == "22.04" ]]; then
-        sudo mv /etc/apt/sources.list /etc/apt/sources.list.backup
-      elif [[ $ubuntu_release == "24.04" ]]; then
-        sudo mv /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list.d/ubuntu.list.backup
-      fi
-      echo "deb [trusted=yes] file:$WORKING_DIR/nginx/packages ./" | sudo tee -a /etc/apt/sources.list.d/nginx.list
-    fi
-}
+# function create_local_repo () {
+#     if [[ $OFFLINE_PREP == "true" && -f $WORKING_DIR/nginx/packages/Packages ]]; then
+#       echo "Offline install detected, creating local repo from packages"
+#       if [[ $ubuntu_release == "22.04" ]]; then
+#         mv /etc/apt/sources.list /etc/apt/sources.list.backup
+#       elif [[ $ubuntu_release == "24.04" ]]; then
+#         mv /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list.d/ubuntu.list.backup
+#       fi
+#       echo "deb [trusted=yes] file:$WORKING_DIR/nginx/packages ./" | tee -a /etc/apt/sources.list.d/nginx.list
+#     fi
+# }
 
 function prepare_dirs () {
     echo "Preparing directory structure..."
@@ -131,34 +135,34 @@ function prepare_dirs () {
       mkdir -p $WORKING_DIR/nginx/certs
     fi
     if [ ! -d /var/www/nginx/artifacts ]; then
-      sudo mkdir -p /var/www/nginx/artifacts
-      sudo chown -R www-data:www-data /var/www/nginx
+      mkdir -p /var/www/nginx/artifacts
+      chown -R www-data:www-data /var/www/nginx
     fi
     if [ ! -d /etc/nginx/auth/artifacts ]; then
-      sudo mkdir -p /etc/nginx/auth/artifacts
+      mkdir -p /etc/nginx/auth/artifacts
     fi
     if [ ! -d /etc/nginx/certs/artifacts ]; then
-      sudo mkdir -p /etc/nginx/certs/artifacts
+      mkdir -p /etc/nginx/certs/artifacts
     fi
 }
 
 function install_prerequisites () {
     echo "Installing NGINX and Apache2-utils packages..."
-    sudo apt update
-    if ! command -v nginx &> /dev/null; then
-        DEBIAN_FRONTEND=noninteractive sudo apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install nginx
-        #DEBIAN_FRONTEND=noninteractive sudo apt-get -y install nginx
-    else
-        echo "NGINX is already installed!"
-    fi
-    if ! command -v NGINX_HTPASSwd &> /dev/null; then
-        echo "Installing NGINX_HTPASSwd..."
-        DEBIAN_FRONTEND=noninteractive sudo apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install apache2-utils
-        #DEBIAN_FRONTEND=noninteractive sudo apt-get -y install apache2-utils
-    else
-        echo "NGINX_HTPASSwd is already installed!"
-    fi
-    sudo rm -f /etc/nginx/sites-enabled/*
+    # apt update
+    # if ! command -v nginx &> /dev/null; then
+    #     DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install nginx
+    #     #DEBIAN_FRONTEND=noninteractive apt-get -y install nginx
+    # else
+    #     echo "NGINX is already installed!"
+    # fi
+    # if ! command -v NGINX_HTPASSwd &> /dev/null; then
+    #     echo "Installing htpasswd..."
+    #     DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install apache2-utils
+    #     #DEBIAN_FRONTEND=noninteractive apt-get -y install apache2-utils
+    # else
+    #     echo "htpasswd is already installed!"
+    # fi
+    rm -f /etc/nginx/sites-enabled/*
     if [ -f $WORKING_DIR/nginx/dhparam ]; then
         echo "dhparam already exists"
     else
@@ -201,11 +205,11 @@ echo "Certificat generation completed..."
 function auth_gen () {
     if [[ $ADD_OR_UPDATE_USER == "true" && $UPDATE_SERVER == "true" ]]; then
         echo "Adding or updating user $NGINX_HTUSER with password $NGINX_HTPASS"
-        sudo NGINX_HTPASSwd -b /etc/nginx/auth/artifacts/NGINX_HTPASSwd "$NGINX_HTUSER" "$NGINX_HTPASS"
+        NGINX_HTPASSwd -b /etc/nginx/auth/artifacts/NGINX_HTPASSwd "$NGINX_HTUSER" "$NGINX_HTPASS"
       return
     elif [[ $INSTALL_SERVER == "true" ]]; then
       echo "Creating new authentication file with user $NGINX_HTUSER with password $NGINX_HTPASS."
-      sudo NGINX_HTPASSwd -bc "/etc/nginx/auth/artifacts/NGINX_HTPASSwd" "$NGINX_HTUSER" "$NGINX_HTPASS"
+      NGINX_HTPASSwd -bc "/etc/nginx/auth/artifacts/NGINX_HTPASSwd" "$NGINX_HTUSER" "$NGINX_HTPASS"
     fi
 }
 
@@ -488,23 +492,23 @@ EOF
 function apply_server () {
     echo "Applying server config..."
     if [ ! -d /etc/nginx/certs/artifacts ]; then
-      sudo mkdir -p /etc/nginx/certs/artifacts
+      mkdir -p /etc/nginx/certs/artifacts
     fi
     if [[ -d $WORKING_DIR/nginx/certs ]]; then
-      sudo cp $WORKING_DIR/nginx/certs/$CERT_KEY_NAME $CERT_KEY_PATH
-      sudo cp $WORKING_DIR/nginx/certs/$CERT_CRT_NAME $CERT_CRT_PATH
+      cp $WORKING_DIR/nginx/certs/$CERT_KEY_NAME $CERT_KEY_PATH
+      cp $WORKING_DIR/nginx/certs/$CERT_CRT_NAME $CERT_CRT_PATH
     fi
     if [ -f $WORKING_DIR/nginx/dhparam ]; then 
-      sudo cp $WORKING_DIR/nginx/dhparam /etc/nginx/dhparam
+      cp $WORKING_DIR/nginx/dhparam /etc/nginx/dhparam
     fi
-    sudo cp $WORKING_DIR/nginx/index.html /var/www/nginx/
-    sudo cp $WORKING_DIR/nginx/$ARTIFACT_COMMON_NAME.conf /etc/nginx/sites-available/$ARTIFACT_COMMON_NAME.conf
-    sudo ln -s /etc/nginx/sites-available/$ARTIFACT_COMMON_NAME.conf /etc/nginx/sites-enabled/
+    cp $WORKING_DIR/nginx/index.html /var/www/nginx/
+    cp $WORKING_DIR/nginx/$ARTIFACT_COMMON_NAME.conf /etc/nginx/sites-available/$ARTIFACT_COMMON_NAME.conf
+    ln -s /etc/nginx/sites-available/$ARTIFACT_COMMON_NAME.conf /etc/nginx/sites-enabled/
     echo "Verifying configuration and reloading NGINX..."
-    sudo systemctl enable nginx
-    sudo systemctl start nginx
-    sudo nginx -t
-    sudo systemctl restart nginx
+    systemctl enable nginx
+    systemctl start nginx
+    nginx -t
+    systemctl restart nginx
 }
 
 function gen_curl_params () {
@@ -513,23 +517,23 @@ function gen_curl_params () {
   curl_config=$(echo "--user $NGINX_HTUSER:$NGINX_HTPASS --insecure")
 }
 
-function restore_apt_repos () {
-    if [[ $OFFLINE_PREP == "true" ]]; then
-      if [[ $ubuntu_release == "22.04" ]]; then
-        sudo mv /etc/apt/sources.list.backup /etc/apt/sources.list
-      elif [[ $ubuntu_release == "24.04" ]]; then
-        sudo mv /etc/apt/sources.list.d/ubuntu.list.backup /etc/apt/sources.list.d/ubuntu.sources
-      fi
-    fi
-}
+# function restore_apt_repos () {
+#     if [[ $OFFLINE_PREP == "true" ]]; then
+#       if [[ $ubuntu_release == "22.04" ]]; then
+#         mv /etc/apt/sources.list.backup /etc/apt/sources.list
+#       elif [[ $ubuntu_release == "24.04" ]]; then
+#         mv /etc/apt/sources.list.d/ubuntu.list.backup /etc/apt/sources.list.d/ubuntu.sources
+#       fi
+#     fi
+# }
 
 function cleanup_install () {
     echo "Cleaning up..."
     if [ -d $WORKING_DIR/nginx ]; then
-      sudo rm -rf $WORKING_DIR/nginx
+      rm -rf $WORKING_DIR/nginx
     fi
     if [[ -f /etc/apt/sources.list.d/nginx.list ]]; then
-      sudo rm /etc/apt/sources.list.d/nginx.list
+      rm /etc/apt/sources.list.d/nginx.list
     fi
 }
 
@@ -538,7 +542,7 @@ function update_server () {
   auth_gen
   if [[ $UPDATE_SSL == "true" && $GEN_NEW_CERT == "true" ]]; then
     echo "GEN_NEW_CERT=$GEN_NEW_CERT, creating new SSL certificates..."
-    sudo rm -rf /etc/nginx/certs/artifacts/*
+    rm -rf /etc/nginx/certs/artifacts/*
     cert_gen
   elif [[ $UPDATE_SSL == "true" && $GEN_NEW_CERT == "false" ]]; then
     echo "GEN_NEW_CERT=$GEN_NEW_CERT, updating SSL with custom certificates..."
@@ -546,17 +550,17 @@ function update_server () {
       echo "ERROR: For custom certificates, you must specify a valid file path for both the key and certificate."
       exit 1
     fi
-    sudo rm -f /etc/nginx/certs/artifacts/*
-    sudo cp $UPDATE_CERT_KEY_PATH $WORKING_DIR/nginx/certs/
-    sudo cp $UPDATE_CERT_PATH $WORKING_DIR/nginx/certs/
+    rm -f /etc/nginx/certs/artifacts/*
+    cp $UPDATE_CERT_KEY_PATH $WORKING_DIR/nginx/certs/
+    cp $UPDATE_CERT_PATH $WORKING_DIR/nginx/certs/
     CERT_CRT_NAME=$(basename $UPDATE_CERT_PATH)
     CERT_KEY_NAME=$(basename $UPDATE_CERT_KEY_PATH)
     CERT_KEY_PATH=/etc/nginx/certs/artifacts/$CERT_KEY_NAME
     CERT_CRT_PATH=/etc/nginx/certs/artifacts/$CERT_CRT_NAME
   fi
-  sudo rm -f /var/www/nginx/index.html
-  sudo rm -f /etc/nginx/sites-enabled/*.conf
-  sudo rm -f /etc/nginx/sites-available/*.conf
+  rm -f /var/www/nginx/index.html
+  rm -f /etc/nginx/sites-enabled/*.conf
+  rm -f /etc/nginx/sites-available/*.conf
   conf_gen
   apply_server
   gen_curl_params
@@ -572,20 +576,29 @@ function delete_server () {
 }
 
 function delete_env () {
-    sudo systemctl stop nginx
-    sudo systemctl disable nginx
-    sudo rm -rf /etc/nginx/certs
-    sudo rm -rf /etc/nginx/auth
-    sudo rm -rf /etc/nginx/sites-available/*
-    sudo rm -rf /etc/nginx/sites-enabled/*
-    sudo rm -rf /etc/nginx/dhparam
+    systemctl stop nginx
+    systemctl disable nginx
+    rm -rf /etc/nginx/certs
+    rm -rf /etc/nginx/auth
+    rm -rf /etc/nginx/sites-available/*
+    rm -rf /etc/nginx/sites-enabled/*
+    rm -rf /etc/nginx/dhparam
     if [[ $DELETE_DATA == "true" ]]; then
-      sudo rm -rf /var/www/nginx
+      rm -rf /var/www/nginx
     fi
     cleanup_install
 }
 
 # Script Execution
+
+# Check for root privileges
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run with root privileges."
+   echo "Type './$SCRIPT_NAME -h' for help."
+   exit 1
+fi
+
+
 if [[ $INSTALL_SERVER == "true" && $UPDATE_SERVER == "true" && $DELETE_SERVER == "true" ]]; then
     echo "Only one of INSTALL_SERVER, UPDATE_SERVER, or DELETE_SERVER can be set to true at a time. Exiting..."
     exit 0
