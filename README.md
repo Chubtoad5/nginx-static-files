@@ -20,7 +20,7 @@
 - clone the repo or download the install_nginx.sh script
 - chmod +x install_nginx.sh
 - Edit the install_nginx.sh, change the variables from USER DEFINED VARIABLES section match your needs
-- Run the script (may prompt user to authenticate sudo user) 
+- Run the script as root or sudo user 
 ```
 ./install_nginx.sh
 ```
