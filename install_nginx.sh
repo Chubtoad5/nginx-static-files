@@ -129,9 +129,9 @@ function install_prerequisites () {
     install_packages_check
     cd $WORKING_DIR/nginx
     if [[ -f $WORKING_DIR/nginx/offline-packages.tar.gz ]]; then
-    ./nginx/install_packages.sh offline nginx apache2-utils
+    ./install_packages.sh offline nginx apache2-utils
     else 
-    ./nginx/install_packages.sh online nginx apache2-utils
+    ./install_packages.sh online nginx apache2-utils
     fi
     cd $WORKING_DIR
     rm -f /etc/nginx/sites-enabled/*
@@ -173,15 +173,15 @@ EOF
 echo "Certificat generation completed..."
 }
 
-# create NGINX_HTPASSwd file for basic auth
+# create htpasswd file for basic auth
 function auth_gen () {
     if [[ $ADD_OR_UPDATE_USER == "true" && $UPDATE_SERVER == "true" ]]; then
         echo "Adding or updating user $NGINX_HTUSER with password $NGINX_HTPASS"
-        NGINX_HTPASSwd -b /etc/nginx/auth/artifacts/NGINX_HTPASSwd "$NGINX_HTUSER" "$NGINX_HTPASS"
+        htpasswd -b /etc/nginx/auth/artifacts/htpasswd "$NGINX_HTUSER" "$NGINX_HTPASS"
       return
     elif [[ $INSTALL_SERVER == "true" ]]; then
       echo "Creating new authentication file with user $NGINX_HTUSER with password $NGINX_HTPASS."
-      NGINX_HTPASSwd -bc "/etc/nginx/auth/artifacts/NGINX_HTPASSwd" "$NGINX_HTUSER" "$NGINX_HTPASS"
+      htpasswd -bc "/etc/nginx/auth/artifacts/htpasswd" "$NGINX_HTUSER" "$NGINX_HTPASS"
     fi
 }
 
@@ -245,7 +245,7 @@ server {
         try_files \$uri \$uri/ =404;
         # Basic authentication (comment out if not required)
         auth_basic "Login Required";
-        auth_basic_user_file /etc/nginx/auth/artifacts/NGINX_HTPASSwd;
+        auth_basic_user_file /etc/nginx/auth/artifacts/htpasswd;
     }
 
     # Location for the /artifacts directory with autoindexing
@@ -254,7 +254,7 @@ server {
         try_files \$uri \$uri/ =404;
         # Basic authentication (comment out if not required)
         auth_basic "Login Required";
-        auth_basic_user_file /etc/nginx/auth/artifacts/NGINX_HTPASSwd;
+        auth_basic_user_file /etc/nginx/auth/artifacts/htpasswd;
     }
 }
 EOF
