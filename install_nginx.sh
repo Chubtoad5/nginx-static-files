@@ -74,7 +74,6 @@ function debug_run() {
 
 function install_server () {
     offline_prep
-    # create_local_repo
     prepare_dirs
     debug_run install_prerequisites
     cert_gen
@@ -82,52 +81,31 @@ function install_server () {
     conf_gen
     apply_server
     gen_curl_params
-    # restore_apt_repos
     cleanup_install
 }
 
 function offline_prep () {
-    if [[ $OFFLINE_PREP == "true" && ! -f $WORKING_DIR/nginx/packages/Packages ]]; then
-      echo "Offline install detected, installing dkpg-dev and downloading packages for nginx and apache2-utils"
-      # debug_run install_dpkg_dev
-      # debug_run apt_download_packs
+    if [[ $OFFLINE_PREP == "true" && ! -f $WORKING_DIR/nginx/offline-packages.tar.gz ]]; then
+      echo "Offline Prep detected, installing dkpg-dev and downloading packages for nginx and apache2-utils"
+      install_packages_check
+      cd $WORKING_DIR/nginx
+      ./install_packages.sh save nginx apache2-utils
+      cd $WORKING_DIR
+      curl https://ssl-config.mozilla.org/ffdhe2048.txt > $WORKING_DIR/nginx/dhparam
+      tar czf nginx_offline_install-Ubuntu-$ubuntu_release.tar.gz -C ./nginx install_nginx.sh
       echo "Offline packages prepared.."
       echo "Run ./install_nginx.sh again to install with local repository, or copy nginx_offline_install.tar.gz to the target server for offline execution."
       exit
     fi
 }
 
-# function install_dpkg_dev () {
-#       if ! command -v dpkg-scanpackages &> /dev/null; then
-#       apt update
-#       DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install dpkg-dev
-#       #DEBIAN_FRONTEND=noninteractive apt-get install -y dpkg-dev
-#       fi
-# }
-
-# function apt_download_packs () {
-#       local PACKAGES="nginx apache2-utils"
-#       echo "Downloading offline packages for future use..."
-#       mkdir -p $WORKING_DIR/nginx/packages
-#       cd $WORKING_DIR/nginx/packages
-#       apt-get download $(apt-cache depends --recurse --no-recommends --no-suggests --no-conflicts --no-breaks --no-replaces --no-enhances --no-pre-depends ${PACKAGES} | grep "^\w")
-#       dpkg-scanpackages -m . > Packages
-#       cd $WORKING_DIR
-#       curl https://ssl-config.mozilla.org/ffdhe2048.txt > $WORKING_DIR/nginx/dhparam
-#       tar czvf nginx_offline_install-Ubuntu-$ubuntu_release.tar.gz -C ./nginx install_nginx.sh
-# }
-
-# function create_local_repo () {
-#     if [[ $OFFLINE_PREP == "true" && -f $WORKING_DIR/nginx/packages/Packages ]]; then
-#       echo "Offline install detected, creating local repo from packages"
-#       if [[ $ubuntu_release == "22.04" ]]; then
-#         mv /etc/apt/sources.list /etc/apt/sources.list.backup
-#       elif [[ $ubuntu_release == "24.04" ]]; then
-#         mv /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list.d/ubuntu.list.backup
-#       fi
-#       echo "deb [trusted=yes] file:$WORKING_DIR/nginx/packages ./" | tee -a /etc/apt/sources.list.d/nginx.list
-#     fi
-# }
+function install_packages_check () {
+    if [[ ! -f $WORKING_DIR/nginx/install_packages.sh ]]; then
+        echo "Downloading install_packages.sh..."
+        curl -sfL https://github.com/Chubtoad5/install-packages/raw/refs/heads/main/install_packages.sh  -o $WORKING_DIR/nginx/install_packages.sh
+        chmod +x $WORKING_DIR/nginx/install_packages.sh
+    fi
+}
 
 function prepare_dirs () {
     echo "Preparing directory structure..."
@@ -148,20 +126,14 @@ function prepare_dirs () {
 
 function install_prerequisites () {
     echo "Installing NGINX and Apache2-utils packages..."
-    # apt update
-    # if ! command -v nginx &> /dev/null; then
-    #     DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install nginx
-    #     #DEBIAN_FRONTEND=noninteractive apt-get -y install nginx
-    # else
-    #     echo "NGINX is already installed!"
-    # fi
-    # if ! command -v NGINX_HTPASSwd &> /dev/null; then
-    #     echo "Installing htpasswd..."
-    #     DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install apache2-utils
-    #     #DEBIAN_FRONTEND=noninteractive apt-get -y install apache2-utils
-    # else
-    #     echo "htpasswd is already installed!"
-    # fi
+    install_packages_check
+    cd $WORKING_DIR/nginx
+    if [[ -f $WORKING_DIR/nginx/offline-packages.tar.gz ]]; then
+    ./nginx/install_packages.sh offline nginx apache2-utils
+    else 
+    ./nginx/install_packages.sh online nginx apache2-utils
+    fi
+    cd $WORKING_DIR
     rm -f /etc/nginx/sites-enabled/*
     if [ -f $WORKING_DIR/nginx/dhparam ]; then
         echo "dhparam already exists"
@@ -516,16 +488,6 @@ function gen_curl_params () {
   curl_header="\"Authorization: Basic $base64_auth_string\""
   curl_config=$(echo "--user $NGINX_HTUSER:$NGINX_HTPASS --insecure")
 }
-
-# function restore_apt_repos () {
-#     if [[ $OFFLINE_PREP == "true" ]]; then
-#       if [[ $ubuntu_release == "22.04" ]]; then
-#         mv /etc/apt/sources.list.backup /etc/apt/sources.list
-#       elif [[ $ubuntu_release == "24.04" ]]; then
-#         mv /etc/apt/sources.list.d/ubuntu.list.backup /etc/apt/sources.list.d/ubuntu.sources
-#       fi
-#     fi
-# }
 
 function cleanup_install () {
     echo "Cleaning up..."
