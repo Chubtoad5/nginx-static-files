@@ -87,12 +87,11 @@ function offline_prep () {
     if [[ $OFFLINE_PREP == "true" && ! -f $WORKING_DIR/nginx/offline-packages.tar.gz ]]; then
       echo "Offline Prep detected, installing dkpg-dev and downloading packages for nginx and apache2-utils"
       install_packages_check
-      mkdir -p $WORKING_DIR/nginx
       cd $WORKING_DIR/nginx
       ./install_packages.sh save nginx apache2-utils
       cd $WORKING_DIR
       curl https://ssl-config.mozilla.org/ffdhe2048.txt > $WORKING_DIR/nginx/dhparam
-      tar czf nginx_offline_install-Ubuntu-$ubuntu_release.tar.gz -C ./nginx install_nginx.sh
+      tar czf nginx_offline_install-Ubuntu-$ubuntu_release.tar.gz nginx install_nginx.sh
       echo "Offline packages prepared.."
       echo "Run ./install_nginx.sh again to install with local repository, or copy nginx_offline_install.tar.gz to the target server for offline execution."
       exit
@@ -101,6 +100,7 @@ function offline_prep () {
 
 function install_packages_check () {
     if [[ ! -f $WORKING_DIR/nginx/install_packages.sh ]]; then
+        mkdir -p $WORKING_DIR/nginx
         echo "Downloading install_packages.sh..."
         curl -sfL https://github.com/Chubtoad5/install-packages/raw/refs/heads/main/install_packages.sh  -o $WORKING_DIR/nginx/install_packages.sh
         chmod +x $WORKING_DIR/nginx/install_packages.sh
