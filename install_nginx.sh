@@ -81,7 +81,6 @@ function install_server () {
     conf_gen
     apply_server
     gen_curl_params
-    cleanup_install
 }
 
 function offline_prep () {
@@ -526,7 +525,6 @@ function update_server () {
   conf_gen
   apply_server
   gen_curl_params
-  cleanup_install
 }
 
 function delete_server () {
