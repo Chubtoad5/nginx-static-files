@@ -87,6 +87,7 @@ function offline_prep () {
     if [[ $OFFLINE_PREP == "true" && ! -f $WORKING_DIR/nginx/offline-packages.tar.gz ]]; then
       echo "Offline Prep detected, installing dkpg-dev and downloading packages for nginx and apache2-utils"
       install_packages_check
+      mkdir -p $WORKING_DIR/nginx
       cd $WORKING_DIR/nginx
       ./install_packages.sh save nginx apache2-utils
       cd $WORKING_DIR
