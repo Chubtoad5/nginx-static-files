@@ -44,10 +44,11 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+source /etc/os-release
+
 WORKING_DIR=$(pwd)
 mgmt_ip=$(hostname -I | awk '{print $1}')
 current_hostname=$(hostname)
-ubuntu_release=$(lsb_release -r | awk '{print $2}')
 CERT_CRT_NAME=$ARTIFACT_COMMON_NAME.crt
 CERT_KEY_NAME=$ARTIFACT_COMMON_NAME.key
 CERT_KEY_PATH=/etc/nginx/certs/artifacts/$CERT_KEY_NAME
@@ -91,7 +92,7 @@ function offline_prep () {
       ./install_packages.sh save nginx apache2-utils
       cd $WORKING_DIR
       curl https://ssl-config.mozilla.org/ffdhe2048.txt > $WORKING_DIR/nginx/dhparam
-      tar czf nginx_offline_install-Ubuntu-$ubuntu_release.tar.gz nginx install_nginx.sh
+      tar czf nginx_offline_install-$ID.tar.gz nginx install_nginx.sh
       echo "Offline packages prepared.."
       echo "Run ./install_nginx.sh again to install with local repository, or copy nginx_offline_install.tar.gz to the target server for offline execution."
       exit
