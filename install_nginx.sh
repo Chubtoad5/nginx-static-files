@@ -53,6 +53,10 @@ CERT_CRT_NAME=$ARTIFACT_COMMON_NAME.crt
 CERT_KEY_NAME=$ARTIFACT_COMMON_NAME.key
 CERT_KEY_PATH=/etc/nginx/certs/artifacts/$CERT_KEY_NAME
 CERT_CRT_PATH=/etc/nginx/certs/artifacts/$CERT_CRT_NAME
+htpasswd_pkg="httpd-tools"
+if [[ "${ID}" =~ ^(ubuntu|debian|sles|opensuse-leap)$ ]]; then
+    htpasswd_pkg="apache2-utils"
+fi
 
 
 ### Functions
@@ -89,7 +93,7 @@ function offline_prep () {
       echo "Offline Prep detected, installing dkpg-dev and downloading packages for nginx and apache2-utils"
       install_packages_check
       cd $WORKING_DIR/nginx
-      ./install_packages.sh save nginx apache2-utils
+      ./install_packages.sh save nginx $htpasswd_pkg
       cd $WORKING_DIR
       curl https://ssl-config.mozilla.org/ffdhe2048.txt > $WORKING_DIR/nginx/dhparam
       tar czf nginx_offline_install-$ID.tar.gz nginx install_nginx.sh
@@ -126,13 +130,14 @@ function prepare_dirs () {
 }
 
 function install_prerequisites () {
-    echo "Installing NGINX and Apache2-utils packages..."
+    echo "Installing NGINX and htpasswd packages..."
     install_packages_check
     cd $WORKING_DIR/nginx
     if [[ -f $WORKING_DIR/nginx/offline-packages.tar.gz ]]; then
-    ./install_packages.sh offline nginx apache2-utils
+    #update
+    ./install_packages.sh offline nginx $htpasswd_pkg
     else 
-    ./install_packages.sh online nginx apache2-utils
+    ./install_packages.sh online nginx $htpasswd_pkg
     fi
     cd $WORKING_DIR
     rm -f /etc/nginx/sites-enabled/*
