@@ -77,3 +77,15 @@ DELETE_DATA=true
 ## Author Notes
 
 This is an opensource tools for installing a basic static file server.
+---
+
+## Upstream / Credits
+
+This project automates the following open-source software; all credit to their authors. See [NOTICE](NOTICE).
+
+- nginx — BSD-2-Clause
+- apache2-utils — Apache-2.0
+
+## License
+
+Licensed under the **Apache License 2.0** — see [LICENSE](LICENSE) and [NOTICE](NOTICE).

@@ -1,0 +1,14 @@
+NGINX Static File Server
+Copyright (C) 2026 Chubtoad5
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This is an original automation script. It installs and configures the following
+third-party open-source software, each under its own license (all credit to their
+respective authors):
+
+  nginx                   BSD-2-Clause   https://nginx.org/
+  apache2-utils           Apache-2.0     https://httpd.apache.org/
+
+When the offline-package mode redistributes these as distribution packages, retain
+each package's copyright and reproduce its license text (nginx is BSD-2-Clause).
